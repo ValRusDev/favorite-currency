@@ -1,0 +1,6 @@
+@FavoriteCurrency.ApiGateway_HostAddress = http://localhost:5237
+
+GET {{FavoriteCurrency.ApiGateway_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

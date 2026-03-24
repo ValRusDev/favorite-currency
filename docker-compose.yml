@@ -1,0 +1,153 @@
+services:
+  postgres:
+    image: postgres:17
+    container_name: favoritecurrency-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      - "${POSTGRES_PORT}:5432"
+    volumes:
+      - favoritecurrency_postgres_data:/var/lib/postgresql/data
+    networks:
+      - favoritecurrency-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    container_name: favoritecurrency-rabbitmq
+    ports:
+      - "${RABBITMQ_PORT}:5672"
+      - "${RABBITMQ_MANAGEMENT_PORT}:15672"
+    networks:
+      - favoritecurrency-network
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7
+    container_name: favoritecurrency-redis
+    ports:
+      - "${REDIS_PORT}:6379"
+    networks:
+      - favoritecurrency-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  migrationservice:
+    build:
+      context: .
+      dockerfile: src/Services/FavoriteCurrency.MigrationService/Dockerfile
+    container_name: favoritecurrency-migrationservice
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - favoritecurrency-network
+
+  userservice.api:
+    build:
+      context: .
+      dockerfile: src/Services/FavoriteCurrency.UserService/FavoriteCurrency.UserService.API/Dockerfile
+    container_name: favoritecurrency-userservice-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__Secret: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrationservice:
+        condition: service_started
+    ports:
+      - "${USER_SERVICE_PORT}:8080"
+    networks:
+      - favoritecurrency-network
+
+  financeservice.api:
+    build:
+      context: .
+      dockerfile: src/Services/FavoriteCurrency.FinanceService/FavoriteCurrency.FinanceService.API/Dockerfile
+    container_name: favoritecurrency-financeservice-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__Postgres: Host=postgres;Port=5432;Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+      ConnectionStrings__Redis: redis:6379
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Username: guest
+      RabbitMq__Password: guest
+      Jwt__Issuer: ${JWT_ISSUER}
+      Jwt__Audience: ${JWT_AUDIENCE}
+      Jwt__Secret: ${JWT_SECRET}
+      Services__UserServiceBaseUrl: http://userservice.api:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrationservice:
+        condition: service_started
+    ports:
+      - "${FINANCE_SERVICE_PORT}:8080"
+    networks:
+      - favoritecurrency-network
+
+  currencyupdater.worker:
+    build:
+      context: .
+      dockerfile: src/Services/FavoriteCurrency.CurrencyUpdater.Worker/Dockerfile
+    container_name: favoritecurrency-currencyupdater-worker
+    environment:
+      DOTNET_ENVIRONMENT: Development
+      RabbitMq__Host: rabbitmq
+      RabbitMq__Username: guest
+      RabbitMq__Password: guest
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    networks:
+      - favoritecurrency-network
+
+  apigateway:
+    build:
+      context: .
+      dockerfile: src/Gateway/FavoriteCurrency.ApiGateway/Dockerfile
+    container_name: favoritecurrency-apigateway
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+    depends_on:
+      userservice.api:
+        condition: service_started
+      financeservice.api:
+        condition: service_started
+    ports:
+      - "${GATEWAY_PORT}:8080"
+    networks:
+      - favoritecurrency-network
+
+networks:
+  favoritecurrency-network:
+
+volumes:
+  favoritecurrency_postgres_data:

@@ -1,0 +1,6 @@
+@FavoriteCurrency.UserService.API_HostAddress = http://localhost:5264
+
+GET {{FavoriteCurrency.UserService.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
