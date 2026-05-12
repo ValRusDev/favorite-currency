@@ -52,3 +52,31 @@ jobs:
             -f src/Services/FavoriteCurrency.UserService/FavoriteCurrency.UserService.API/Dockerfile \
             -t favoritecurrency/userservice-api:ci \
             .
+
+      - name: Build FinanceService API image
+        run: |
+          docker build \
+            -f src/Services/FavoriteCurrency.FinanceService/FavoriteCurrency.FinanceService.API/Dockerfile \
+            -t favoritecurrency/financeservice-api:ci \
+            .
+
+      - name: Build ApiGateway image
+        run: |
+          docker build \
+            -f src/Gateway/FavoriteCurrency.ApiGateway/Dockerfile \
+            -t favoritecurrency/apigateway:ci \
+            .
+
+      - name: Build MigrationService image
+        run: |
+          docker build \
+            -f src/Services/FavoriteCurrency.MigrationService/Dockerfile \
+            -t favoritecurrency/migrationservice:ci \
+            .
+
+      - name: Build CurrencyUpdater Worker image
+        run: |
+          docker build \
+            -f src/Services/FavoriteCurrency.CurrencyUpdater.Worker/Dockerfile \
+            -t favoritecurrency/currencyupdater-worker:ci \
+            .
