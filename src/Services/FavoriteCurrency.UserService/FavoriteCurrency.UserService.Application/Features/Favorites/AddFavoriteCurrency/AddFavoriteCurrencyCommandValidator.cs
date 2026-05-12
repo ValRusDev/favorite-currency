@@ -1,5 +1,5 @@
 ﻿using FluentValidation;
-    
+
 namespace FavoriteCurrency.UserService.Application.Features.Favorites.AddFavoriteCurrency
 {
     public sealed class AddFavoriteCurrencyCommandValidator : AbstractValidator<AddFavoriteCurrencyCommand>
