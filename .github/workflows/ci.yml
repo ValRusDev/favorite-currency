@@ -29,6 +29,9 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore FavoriteCurrency.sln
 
+      - name: Check code formatting
+        run: dotnet format FavoriteCurrency.sln --verify-no-changes --verbosity diagnostic
+
       - name: Build solution
         run: dotnet build FavoriteCurrency.sln --no-restore --configuration Release
 
