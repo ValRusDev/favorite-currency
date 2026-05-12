@@ -37,3 +37,46 @@ jobs:
 
       - name: Run tests
         run: dotnet test FavoriteCurrency.sln --no-build --configuration Release --logger trx
+
+  docker-build:
+    runs-on: ubuntu-latest
+    needs: build-test
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build MigrationService image
+        run: |
+          docker build \
+            -f src/Services/FavoriteCurrency.MigrationService/Dockerfile \
+            -t favoritecurrency/migrationservice:ci \
+            .
+
+      - name: Build UserService API image
+        run: |
+          docker build \
+            -f src/Services/FavoriteCurrency.UserService/FavoriteCurrency.UserService.API/Dockerfile \
+            -t favoritecurrency/userservice-api:ci \
+            .
+
+      - name: Build FinanceService API image
+        run: |
+          docker build \
+            -f src/Services/FavoriteCurrency.FinanceService/FavoriteCurrency.FinanceService.API/Dockerfile \
+            -t favoritecurrency/financeservice-api:ci \
+            .
+
+      - name: Build CurrencyUpdater Worker image
+        run: |
+          docker build \
+            -f src/Services/FavoriteCurrency.CurrencyUpdater.Worker/Dockerfile \
+            -t favoritecurrency/currencyupdater-worker:ci \
+            .
+
+      - name: Build ApiGateway image
+        run: |
+          docker build \
+            -f src/Gateway/FavoriteCurrency.ApiGateway/Dockerfile \
+            -t favoritecurrency/apigateway:ci \
+            .
