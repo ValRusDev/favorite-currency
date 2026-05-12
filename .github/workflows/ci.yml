@@ -16,15 +16,20 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Setup .NET SDK
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '8.0.x'
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            **/packages.lock.json
+            **/global.json
 
       - name: Restore dependencies
         run: dotnet restore FavoriteCurrency.sln
 
-      - name: Build
+      - name: Build solution
         run: dotnet build FavoriteCurrency.sln --no-restore --configuration Release
 
       - name: Run tests
